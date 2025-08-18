@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Fetch Posts</title>
+</head>
+<body>
+    <h1>Instagram Scraper</h1>
+    <form action="/pull" method="POST">
+        <label for="urls">Instagram Page URLs (One per line):</label><br>
+        <textarea id="urls" name="urls" rows="5" cols="40" placeholder="https://www.instagram.com/example/"></textarea><br><br>
+
+        <label for="results_limit">Number of Posts (Default: 5):</label><br>
+        <input type="number" id="results_limit" name="results_limit" value="40"><br><br>
+
+        <button type="submit">Fetch Data</button>
+    </form>
+</body>
+</html>
