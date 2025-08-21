@@ -2,3 +2,4 @@ flask
 requests
 apify-client
 python-dotenv
+gunicorn
