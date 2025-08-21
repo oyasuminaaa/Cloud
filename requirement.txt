@@ -1,0 +1,4 @@
+flask
+requests
+apify-client
+python-dotenv
