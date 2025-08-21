@@ -1,6 +1,7 @@
 from apify_client import ApifyClient
 import sys
 import csv
+import os
 from flask import Flask, request, jsonify, render_template
 
 # ตั้งค่า encoding
@@ -75,4 +76,6 @@ def fetch_instagram_data():
 
 # เริ่มต้น Flask Application
 if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
     app.run(debug=True)
