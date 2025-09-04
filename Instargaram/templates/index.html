@@ -33,9 +33,6 @@
     </form>
     <div id="result" class="mt"></div>
   </div>
-  <p class="muted mt">
-    * หมายเหตุ: ไฟล์ CSV จะเก็บไว้ในไฟล์ระบบชั่วคราวของเซิร์ฟเวอร์ (ephemeral). หากต้องการเก็บถาวร แนะนำอัปโหลดไปที่ Storage ภายนอก (เช่น S3) หรือ Apify dataset export.
-  </p>
 </div>
 
 <script>
@@ -54,7 +51,7 @@ form.addEventListener('submit', async (e) => {
     result.innerHTML = `✅ ${data.message} (จำนวนแถว: ${data.count})<br><br>
       <a class="button" href="${data.download}">ดาวน์โหลด CSV</a>`;
   } catch (err) {
-    result.textContent = '❌ ' + err.message;
+    result.textContent = '❌ อั้ย!!!' + err.message;
   }
 });
 </script>
