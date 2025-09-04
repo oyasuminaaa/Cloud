@@ -3,24 +3,133 @@
 <head>
   <meta charset="utf-8">
   <title>Instagram Scraper</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    form {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      font-size: 14px;
+    }
+
+    input[type="number"] {
+      width: 100px;
+      padding: 5px;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      max-width: 800px;
+      margin: 20px auto;
+    }
+
+    li {
+      background-color: #fff;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+    }
+
+    a {
+      text-decoration: none;
+      color: #2980b9;
+      font-weight: bold;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    small {
+      color: #7f8c8d;
+    }
+
+    .download-link {
+      display: block;
+      max-width: 200px;
+      margin: 20px auto;
+      text-align: center;
+      padding: 10px;
+      background-color: #2ecc71;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .download-link:hover {
+      background-color: #27ae60;
+    }
+  </style>
 </head>
 <body>
-  <h1>Instagram Posts</h1>
+  <h1>Instagram Scraper</h1>
+
   <form method="post" action="/pull">
-    <textarea name="urls" placeholder="ใส่ลิงก์ Instagram (1 บรรทัดต่อ 1 ลิงก์)" rows="4" cols="50"></textarea><br>
-    <input type="number" name="results_limit" value="40">
+    <label for="urls"><strong>ใส่ลิงก์ Instagram (1 บรรทัดต่อ 1 ลิงก์)</strong></label>
+    <textarea name="urls" id="urls" rows="5" placeholder="https://www.instagram.com/example1/&#10;https://www.instagram.com/example2/"></textarea><br>
+    <label for="results_limit"><strong>จำนวนโพสต์สูงสุด:</strong></label>
+    <input type="number" name="results_limit" id="results_limit" value="1" min="1"><br>
     <button type="submit">ดึงข้อมูล</button>
   </form>
+
   <h2>โพสต์ล่าสุด</h2>
   <ul>
     {% for post in posts %}
       <li>
         <a href="{{ post.post_url }}" target="_blank">{{ post.page_name }}</a><br>
-        {{ post.text }} <br>
+        {{ post.text }}<br>
         <small>{{ post.post_date }}</small>
       </li>
+    {% else %}
+      <li style="text-align:center; color:#7f8c8d;">ไม่มีโพสต์</li>
     {% endfor %}
   </ul>
-  <a href="/download">📥 ดาวน์โหลด CSV</a>
+
+  <a class="download-link" href="/download">📥 ดาวน์โหลด CSV</a>
 </body>
 </html>
