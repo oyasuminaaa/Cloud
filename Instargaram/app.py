@@ -79,8 +79,6 @@ def fetch_instagram_data():
         # ดึงข้อมูลจาก dataset
         dataset_client = client.dataset(run["defaultDatasetId"])
         items = list(dataset_client.list_items().items)
-
-<<<<<<< HEAD
         count = 0
         for item in client.dataset(run["defaultDatasetId"]).iterate_items():
             post = InstagramPost(
