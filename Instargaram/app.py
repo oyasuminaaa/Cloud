@@ -1,6 +1,5 @@
 import os
 from flask import Flask, request, jsonify, render_template, Response
-from flask_sqlalchemy import SQLAlchemy
 from apify_client import ApifyClient
 import csv
 from io import StringIO
@@ -13,9 +12,11 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("Missing DATABASE_URL environment variable.")
 
-# Render ใช้ postgres:// แต่ SQLAlchemy ต้องการ postgresql://
+# Render ให้ค่าเป็น postgres:// แต่ SQLAlchemy+psycopg ต้องการ postgresql+psycopg://
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
