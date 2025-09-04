@@ -2,7 +2,7 @@ from apify_client import ApifyClient
 import sys
 import csv
 import os
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template
 
 sys.stdout.reconfigure(encoding='utf-8')
 app = Flask(__name__)
@@ -23,7 +23,7 @@ def fetch_instagram_data():
         results_limit = int(request.form.get('results_limit', 40))
         start_urls = [url.strip() for url in urls.splitlines() if url.strip()]
         if not start_urls:
-            return jsonify({"error": "กรุณาระบุ URL อย่างน้อย 1 รายการ"}), 400
+            return "กรุณาระบุ URL อย่างน้อย 1 รายการ", 400
 
         run_input = {
             "directUrls": start_urls,
@@ -47,27 +47,11 @@ def fetch_instagram_data():
                 'Post Date': item.get("timestamp", "No date"),
             })
 
-        os.makedirs("data", exist_ok=True)
-        csv_file = os.path.join("data", "Instagram_data.csv")
-        with open(csv_file, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(f, fieldnames=['Page Name','Text','Post URL','Post Date'])
-            writer.writeheader()
-            writer.writerows(data)
-
-        return jsonify({
-            "message": "Data fetched and saved successfully.",
-            "count": len(data),
-            "download": f"/download/Instagram_data.csv"
-        }), 200
+        # ส่งข้อมูลไปแสดงบน HTML
+        return render_template('results.html', data=data)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# Route ดาวน์โหลด CSV
-@app.route('/download/<path:filename>')
-def download_file(filename):
-    file_path = os.path.join("data", filename)
-    return send_file(file_path, as_attachment=True)
+        return f"เกิดข้อผิดพลาด: {str(e)}", 500
 
 # Health check
 @app.route('/healthz')
