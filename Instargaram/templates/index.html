@@ -12,50 +12,51 @@
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .mt { margin-top: 1rem; }
     .muted { color: #555; font-size: .9rem; }
-    code { background: #f6f8fa; padding: 0 .35rem; border-radius: 6px; }
     a.button { display:inline-block; padding:.75rem 1rem; border-radius:10px; border:1px solid #ddd; text-decoration:none; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Instagram Scraper (Apify)</h1>
-    <p class="muted">วาง URL โปรไฟล์/โพสต์ของ Instagram (1 บรรทัดต่อ 1 URL) และกำหนดจำนวนผลลัพธ์ต่อ URL</p>
-    <div class="card">
-      <form id="scrapeForm">
-        <label>URLs (บรรทัดละ 1 รายการ)</label>
-        <textarea name="urls" rows="8" placeholder="https://www.instagram.com/natgeo&#10;https://www.instagram.com/instagram"></textarea>
-        <div class="row mt">
-          <div>
-            <label>Results limit ต่อ URL</label>
-            <input name="results_limit" type="number" min="1" max="100" value="40">
-          </div>
+<div class="container">
+  <h1>Instagram Scraper (Apify)</h1>
+  <p class="muted">วาง URL โปรไฟล์/โพสต์ของ Instagram (1 บรรทัดต่อ 1 URL) และกำหนดจำนวนผลลัพธ์ต่อ URL</p>
+  <div class="card">
+    <form id="scrapeForm">
+      <label>URLs (บรรทัดละ 1 รายการ)</label>
+      <textarea name="urls" rows="8" placeholder="https://www.instagram.com/natgeo&#10;https://www.instagram.com/instagram"></textarea>
+      <div class="row mt">
+        <div>
+          <label>Results limit ต่อ URL</label>
+          <input name="results_limit" type="number" min="1" max="100" value="40">
         </div>
-        <button class="mt" type="submit">ดึงข้อมูล</button>
-      </form>
-      <div id="result" class="mt"></div>
-    </div>
-    <p class="muted mt">
-      * หมายเหตุ: ไฟล์ CSV จะเก็บไว้ในไฟล์ระบบชั่วคราวของเซิร์ฟเวอร์ (ephemeral). หากต้องการเก็บถาวร แนะนำอัปโหลดไปที่ Storage ภายนอก (เช่น S3) หรือ Apify dataset export.
-    </p>
+      </div>
+      <button class="mt" type="submit">ดึงข้อมูล</button>
+    </form>
+    <div id="result" class="mt"></div>
   </div>
+  <p class="muted mt">
+    * หมายเหตุ: ไฟล์ CSV จะเก็บไว้ในไฟล์ระบบชั่วคราวของเซิร์ฟเวอร์ (ephemeral). หากต้องการเก็บถาวร แนะนำอัปโหลดไปที่ Storage ภายนอก (เช่น S3) หรือ Apify dataset export.
+  </p>
+</div>
 
-  <script>
-    const form = document.getElementById('scrapeForm');
-    const result = document.getElementById('result');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      result.textContent = 'กำลังดึงข้อมูล...';
-      const formData = new FormData(form);
-      try {
-        const res = await fetch('/pull', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
-        result.innerHTML = `✅ ${data.message} (จำนวนแถว: ${data.count})<br><br>
-          <a class="button" href="${data.download}">ดาวน์โหลด CSV</a>`;
-      } catch (err) {
-        result.textContent = '❌ ' + err.message;
-      }
-    });
-  </script>
+<script>
+const form = document.getElementById('scrapeForm');
+const result = document.getElementById('result');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  result.textContent = 'กำลังดึงข้อมูล...';
+  const formData = new FormData(form);
+  try {
+    const res = await fetch('/pull', { method: 'POST', body: formData });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error("Server did not return JSON. Raw response:\n" + text); }
+    if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+    result.innerHTML = `✅ ${data.message} (จำนวนแถว: ${data.count})<br><br>
+      <a class="button" href="${data.download}">ดาวน์โหลด CSV</a>`;
+  } catch (err) {
+    result.textContent = '❌ ' + err.message;
+  }
+});
+</script>
 </body>
 </html>
