@@ -38,20 +38,20 @@
 <script>
 const form = document.getElementById('scrapeForm');
 const result = document.getElementById('result');
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   result.textContent = 'กำลังดึงข้อมูล...';
   const formData = new FormData(form);
   try {
     const res = await fetch('/pull', { method: 'POST', body: formData });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch { throw new Error("Server did not return JSON. Raw response:\n" + text); }
-    if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
-    result.innerHTML = `✅ ${data.message} (จำนวนแถว: ${data.count})<br><br>
-      <a class="button" href="${data.download}">ดาวน์โหลด CSV</a>`;
+
+    // เปลี่ยนตรงนี้
+    const html = await res.text();   // รับเป็น text
+    result.innerHTML = html;         // แสดง HTML table ใน div #result
+
   } catch (err) {
-    result.textContent = '❌ อั้ย!!!' + err.message;
+    result.textContent = '❌ อั้ย!!! ' + err.message;
   }
 });
 </script>
