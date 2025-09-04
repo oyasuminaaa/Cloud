@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from apify_client import ApifyClient
 import csv
 from io import StringIO
+from models import db, Post
 
 app = Flask(__name__)
 
@@ -14,6 +15,13 @@ if not DATABASE_URL:
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# init db
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()  # สร้างตารางถ้ายังไม่มี
+
 db = SQLAlchemy(app)
 
 # --- Apify config ---
@@ -36,7 +44,7 @@ with app.app_context():
 # --- Routes ---
 @app.route("/")
 def index():
-    posts = InstagramPost.query.order_by(InstagramPost.id.desc()).all()
+    posts = Post.query.order_by(Post.post_date.desc()).all()
     return render_template("index.html", posts=posts)
 
 @app.route("/pull", methods=["POST"])
@@ -62,14 +70,14 @@ def fetch_instagram_data():
 
         count = 0
         for item in client.dataset(run["defaultDatasetId"]).iterate_items():
-            post = InstagramPost(
+            post = Post(
                 page_name=item.get("ownerFullName") or item.get("ownerUsername") or "N/A",
                 text=item.get("caption", "No caption"),
                 post_url=item.get("url", "No URL"),
-                post_date=item.get("timestamp", "No date")
+                post_date=item.get("timestamp")
             )
             db.session.add(post)
-            count += 1
+
         db.session.commit()
 
         return jsonify({"message": f"ดึงข้อมูลสำเร็จ {count} โพสต์", "count": count}), 200
