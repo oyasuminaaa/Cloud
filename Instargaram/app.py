@@ -1,12 +1,14 @@
-from flask import Flask, request, jsonify, render_template
-from flask_sqlalchemy import SQLAlchemy
 import os
+from flask import Flask, request, jsonify, render_template, Response
+from flask_sqlalchemy import SQLAlchemy
 from apify_client import ApifyClient
+import csv
+from io import StringIO
 
 app = Flask(__name__)
 
 # --- Database config ---
-DATABASE_URL = os.getenv("DATABASE_URL")  # ตัวอย่าง: postgres://user:pass@host:port/dbname
+DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("Missing DATABASE_URL environment variable.")
 
@@ -14,13 +16,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- Instagram Scraper ---
+# --- Apify config ---
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
 if not APIFY_TOKEN:
     raise RuntimeError("Missing APIFY_TOKEN environment variable.")
 client = ApifyClient(APIFY_TOKEN)
 
-# --- Database model ---
+# --- DB Model ---
 class InstagramPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     page_name = db.Column(db.String(255))
@@ -28,10 +30,10 @@ class InstagramPost(db.Model):
     post_url = db.Column(db.String(500))
     post_date = db.Column(db.String(50))
 
-# สร้างตาราง (ครั้งแรก)
 with app.app_context():
     db.create_all()
 
+# --- Routes ---
 @app.route("/")
 def index():
     posts = InstagramPost.query.order_by(InstagramPost.id.desc()).all()
@@ -74,3 +76,24 @@ def fetch_instagram_data():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/download")
+def download_csv():
+    try:
+        posts = InstagramPost.query.order_by(InstagramPost.id.desc()).all()
+        si = StringIO()
+        writer = csv.writer(si)
+        writer.writerow(["Page Name", "Text", "Post URL", "Post Date"])
+        for post in posts:
+            writer.writerow([post.page_name, post.text, post.post_url, post.post_date])
+        return Response(
+            si.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": "attachment;filename=Instagram_data.csv"}
+        )
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, debug=False)
