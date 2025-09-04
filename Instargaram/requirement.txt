@@ -1,5 +1,4 @@
-flask
-requests
-apify-client
-python-dotenv
-gunicorn
+Flask==3.0.3
+gunicorn==21.2.0
+apify-client==1.8.1
+python-dotenv==1.0.1
