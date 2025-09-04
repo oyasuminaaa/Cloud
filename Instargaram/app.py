@@ -1,45 +1,47 @@
+from flask import Flask, request, jsonify, render_template
+from flask_sqlalchemy import SQLAlchemy
 import os
-import sys
-import csv
-from flask import Flask, request, jsonify, render_template, send_from_directory, abort
 from apify_client import ApifyClient
-
-# Ensure UTF-8 output
-try:
-    sys.stdout.reconfigure(encoding='utf-8')
-except Exception:
-    pass
 
 app = Flask(__name__)
 
-# --- Configuration ---
+# --- Database config ---
+DATABASE_URL = os.getenv("DATABASE_URL")  # ตัวอย่าง: postgres://user:pass@host:port/dbname
+if not DATABASE_URL:
+    raise RuntimeError("Missing DATABASE_URL environment variable.")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# --- Instagram Scraper ---
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
-
 if not APIFY_TOKEN:
-    # Fail fast with a clear error if token isn't provided
-    raise RuntimeError("Missing APIFY_TOKEN environment variable. Set it in your cloud service.")
-
+    raise RuntimeError("Missing APIFY_TOKEN environment variable.")
 client = ApifyClient(APIFY_TOKEN)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-os.makedirs(DATA_DIR, exist_ok=True)
+# --- Database model ---
+class InstagramPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    page_name = db.Column(db.String(255))
+    text = db.Column(db.Text)
+    post_url = db.Column(db.String(500))
+    post_date = db.Column(db.String(50))
 
-@app.route("/healthz")
-def healthz():
-    return "ok", 200
+# สร้างตาราง (ครั้งแรก)
+with app.app_context():
+    db.create_all()
 
-# Home page with form
 @app.route("/")
 def index():
-    return render_template("index.html")
+    posts = InstagramPost.query.order_by(InstagramPost.id.desc()).all()
+    return render_template("index.html", posts=posts)
 
-# Fetch Instagram data via Apify
 @app.route("/pull", methods=["POST"])
 def fetch_instagram_data():
     try:
         urls = request.form.get("urls", "")
         results_limit = int(request.form.get("results_limit", 40))
-
         start_urls = [u.strip() for u in urls.splitlines() if u.strip()]
         if not start_urls:
             return jsonify({"error": "กรุณาระบุ URL อย่างน้อย 1 รายการ"}), 400
@@ -56,46 +58,19 @@ def fetch_instagram_data():
         if run.get("status") != "SUCCEEDED":
             return jsonify({"error": f"Actor ทำงานไม่สำเร็จ: {run.get('status')}", "runId": run.get("id")}), 500
 
-        data = []
+        count = 0
         for item in client.dataset(run["defaultDatasetId"]).iterate_items():
-            page_name = item.get("ownerFullName") or item.get("ownerUsername") or "N/A"
-            text = item.get("caption", "No caption")
-            post_url = item.get("url", "No URL")
-            post_date = item.get("timestamp", "No date")
+            post = InstagramPost(
+                page_name=item.get("ownerFullName") or item.get("ownerUsername") or "N/A",
+                text=item.get("caption", "No caption"),
+                post_url=item.get("url", "No URL"),
+                post_date=item.get("timestamp", "No date")
+            )
+            db.session.add(post)
+            count += 1
+        db.session.commit()
 
-            data.append({
-                "Page Name": page_name,
-                "Text": text,
-                "Post URL": post_url,
-                "Post Date": post_date,
-            })
-
-        # Save CSV to a writable (ephemeral) directory
-        csv_file = os.path.join(DATA_DIR, "Instagram_data.csv")
-        with open(csv_file, "w", newline="", encoding="utf-8-sig") as csvfile:
-            fieldnames = ["Page Name", "Text", "Post URL", "Post Date"]
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(data)
-
-        # Provide a download link within this instance
-        return jsonify({
-            "message": "ดึงข้อมูลสำเร็จและบันทึก CSV แล้ว",
-            "download": "/download/Instagram_data.csv",
-            "count": len(data)
-        }), 200
+        return jsonify({"message": f"ดึงข้อมูลสำเร็จ {count} โพสต์", "count": count}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route("/download/<path:filename>")
-def download_file(filename):
-    file_path = os.path.join(DATA_DIR, filename)
-    if not os.path.exists(file_path):
-        abort(404)
-    return send_from_directory(DATA_DIR, filename, as_attachment=True)
-
-if __name__ == "__main__":
-    # Use PORT from env if provided (Render/Railway pass it), else default to 8000 for local dev
-    port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=False)
