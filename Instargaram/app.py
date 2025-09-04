@@ -49,6 +49,21 @@ def fetch_instagram_data():
 
         # ส่งข้อมูลไปแสดงบน HTML
         return render_template('results.html', data=data)
+        
+        # สร้าง CSV เก็บด้วย (ถ้าต้องการดาวน์โหลด)
+        os.makedirs("data", exist_ok=True)
+        csv_file = os.path.join("data", "Instagram_data.csv")
+        with open(csv_file, 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.DictWriter(f, fieldnames=['Page Name','Text','Post URL','Post Date'])
+            writer.writeheader()
+            writer.writerows(data)
+
+        # ส่ง JSON กลับไป frontend
+        return jsonify({
+            "message": "Data fetched successfully",
+            "count": len(data),
+            "download": f"/download/Instagram_data.csv"
+        })
 
     except Exception as e:
         return f"เกิดข้อผิดพลาด: {str(e)}", 500
