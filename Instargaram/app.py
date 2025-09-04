@@ -13,16 +13,17 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("Missing DATABASE_URL environment variable.")
 
+# Render ใช้ postgres:// แต่ SQLAlchemy ต้องการ postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# init db
 db.init_app(app)
 
 with app.app_context():
-    db.create_all()  # สร้างตารางถ้ายังไม่มี
-
-db = SQLAlchemy(app)
+    db.create_all()
 
 # --- Apify config ---
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
@@ -30,21 +31,10 @@ if not APIFY_TOKEN:
     raise RuntimeError("Missing APIFY_TOKEN environment variable.")
 client = ApifyClient(APIFY_TOKEN)
 
-# --- DB Model ---
-class InstagramPost(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    page_name = db.Column(db.String(255))
-    text = db.Column(db.Text)
-    post_url = db.Column(db.String(500))
-    post_date = db.Column(db.String(50))
-
-with app.app_context():
-    db.create_all()
-
 # --- Routes ---
 @app.route("/")
 def index():
-    posts = Post.query.order_by(Post.post_date.desc()).all()
+    posts = Post.query.order_by(Post.id.desc()).all()
     return render_template("index.html", posts=posts)
 
 @app.route("/pull", methods=["POST"])
@@ -66,7 +56,10 @@ def fetch_instagram_data():
         run = client.actor("apify/instagram-scraper").call(run_input=run_input)
 
         if run.get("status") != "SUCCEEDED":
-            return jsonify({"error": f"Actor ทำงานไม่สำเร็จ: {run.get('status')}", "runId": run.get("id")}), 500
+            return jsonify({
+                "error": f"Actor ทำงานไม่สำเร็จ: {run.get('status')}",
+                "runId": run.get("id")
+            }), 500
 
         count = 0
         for item in client.dataset(run["defaultDatasetId"]).iterate_items():
@@ -77,6 +70,7 @@ def fetch_instagram_data():
                 post_date=item.get("timestamp")
             )
             db.session.add(post)
+            count += 1
 
         db.session.commit()
 
@@ -88,7 +82,7 @@ def fetch_instagram_data():
 @app.route("/download")
 def download_csv():
     try:
-        posts = InstagramPost.query.order_by(InstagramPost.id.desc()).all()
+        posts = Post.query.order_by(Post.id.desc()).all()
         si = StringIO()
         writer = csv.writer(si)
         writer.writerow(["Page Name", "Text", "Post URL", "Post Date"])
