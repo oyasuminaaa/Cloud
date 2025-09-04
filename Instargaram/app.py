@@ -1,8 +1,9 @@
-<<<<<<< HEAD
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 import os
 from apify_client import ApifyClient
+import sys
+import csv
 
 app = Flask(__name__)
 
@@ -44,12 +45,6 @@ def fetch_instagram_data():
         urls = request.form.get("urls", "")
         results_limit = int(request.form.get("results_limit", 40))
         start_urls = [u.strip() for u in urls.splitlines() if u.strip()]
-=======
-from apify_client import ApifyClient
-import sys
-import csv
-import os
-from flask import Flask, request, jsonify, render_template
 
 sys.stdout.reconfigure(encoding='utf-8')
 app = Flask(__name__)
@@ -69,7 +64,6 @@ def fetch_instagram_data():
         urls = request.form.get('urls')
         results_limit = int(request.form.get('results_limit', 40))
         start_urls = [url.strip() for url in urls.splitlines() if url.strip()]
->>>>>>> cfe05a6ec339fd3f371270c7ba3b7d10d74e67d2
         if not start_urls:
             return "กรุณาระบุ URL อย่างน้อย 1 รายการ", 400
 
@@ -103,7 +97,7 @@ def fetch_instagram_data():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-=======
+
         data = []
         for item in items:
             data.append({
@@ -142,4 +136,4 @@ def health():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
->>>>>>> cfe05a6ec339fd3f371270c7ba3b7d10d74e67d2
+
