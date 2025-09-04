@@ -2,25 +2,57 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Instagram Posts</title>
+    <title>Instagram Scraper</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 20px; }
+        textarea { width: 100%; height: 100px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        button { padding: 8px 12px; margin-top: 10px; cursor: pointer; }
+        .download-btn { margin-bottom: 20px; background-color: #4CAF50; color: white; border: none; }
+    </style>
 </head>
 <body>
-<h1>Instagram Posts</h1>
+    <h1>Instagram Scraper</h1>
 
-<form action="/pull" method="post">
-    <textarea name="urls" rows="5" cols="50" placeholder="ใส่ URL ของ Instagram"></textarea><br>
-    <input type="number" name="results_limit" value="1">
-    <button type="submit">ดึงข้อมูล</button>
-</form>
+    <!-- Form ดึงข้อมูล Instagram -->
+    <form action="/pull" method="post">
+        <label>ใส่ URL ของ Instagram (1 URL ต่อบรรทัด):</label><br>
+        <textarea name="urls" placeholder="https://www.instagram.com/p/xxxx/"></textarea><br>
+        <label>จำนวนโพสต์สูงสุด:</label>
+        <input type="number" name="results_limit" value="40"><br>
+        <button type="submit">ดึงข้อมูล</button>
+    </form>
 
-<h2>Posts:</h2>
-<ul>
-    {% for post in posts %}
-    <li>
-        <strong>{{ post.page_name }}</strong>: {{ post.text }} <br>
-        <a href="{{ post.post_url }}" target="_blank">Link</a> | {{ post.post_date }}
-    </li>
-    {% endfor %}
-</ul>
+    <!-- ปุ่มดาวน์โหลด CSV -->
+    <a href="/download"><button class="download-btn">ดาวน์โหลด CSV ของโพสต์ทั้งหมด</button></a>
+
+    <!-- ตารางแสดงโพสต์จาก Database -->
+    <h2>โพสต์ล่าสุด</h2>
+    {% if posts %}
+    <table>
+        <thead>
+            <tr>
+                <th>Page Name</th>
+                <th>Text</th>
+                <th>Post URL</th>
+                <th>Post Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for post in posts %}
+            <tr>
+                <td>{{ post.page_name }}</td>
+                <td>{{ post.text }}</td>
+                <td><a href="{{ post.post_url }}" target="_blank">Link</a></td>
+                <td>{{ post.post_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>ยังไม่มีโพสต์ในฐานข้อมูล</p>
+    {% endif %}
 </body>
 </html>
