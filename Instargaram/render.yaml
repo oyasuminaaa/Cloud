@@ -1,11 +1,11 @@
 services:
   - type: web
-    name: ig-scraper-flask
+    name: instagram-scraper
     env: python
-    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
+      - key: DATABASE_URL
+        sync: false
       - key: APIFY_TOKEN
-        # Set this in Render Dashboard > Environment
         sync: false
