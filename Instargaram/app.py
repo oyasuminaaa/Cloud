@@ -4,7 +4,7 @@ from apify_client import ApifyClient
 import csv
 from io import StringIO
 from models import db, Post
-import sys
+
 
 app = Flask(__name__)
 
@@ -81,7 +81,7 @@ def fetch_instagram_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
         
-print("Start pulling data...", file=sys.stderr, flush=True)
+
 
 @app.route("/download")
 def download_csv():
