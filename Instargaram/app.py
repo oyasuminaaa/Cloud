@@ -41,7 +41,7 @@ def index():
 
 @app.route("/pull", methods=["POST"])
 def trigger_instagram_data():
-    if request.method == "POST":
+    if request.method == "GET":
         return jsonify({"message": "โปรดส่ง POST request พร้อม URLs"}), 400
     try:
         urls = request.form.get("urls", "")
