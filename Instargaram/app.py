@@ -39,8 +39,10 @@ def index():
     posts = Post.query.order_by(Post.id.desc()).all()
     return render_template("index.html", posts=posts)
 
-@app.route("/pull", methods=["POST"])
+@app.route("/pull", methods=["GET", "POST"])
 def trigger_instagram_data():
+    if request.method == "GET":
+        return jsonify({"message": "โปรดส่ง POST request พร้อม URLs"}), 400
     try:
         urls = request.form.get("urls", "")
         results_limit = int(request.form.get("results_limit", 40))
