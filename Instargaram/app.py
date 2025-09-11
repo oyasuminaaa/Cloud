@@ -40,7 +40,7 @@ def index():
     return render_template("index.html", posts=posts)
 
 @app.route("/pull", methods=["POST"])
-def fetch_instagram_data():
+def trigger_instagram_data():
     try:
         urls = request.form.get("urls", "")
         results_limit = int(request.form.get("results_limit", 40))
@@ -55,13 +55,40 @@ def fetch_instagram_data():
             "addParentData": True,
         }
 
-        run = client.actor("apify/instagram-scraper").call(run_input=run_input)
+        # Trigger run แต่ไม่รอให้เสร็จ
+        run = client.actor("apify/instagram-scraper").start(run_input=run_input)
 
+        return jsonify({
+            "message": "เริ่มดึงข้อมูลแล้ว",
+            "runId": run["id"],
+            "statusUrl": f"/status/{run['id']}",
+            "fetchUrl": f"/fetch/{run['id']}"
+        }), 202
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/status/<run_id>")
+def check_status(run_id):
+    try:
+        run = client.run(run_id).get()
+        return jsonify({
+            "id": run.get("id"),
+            "status": run.get("status"),
+            "startedAt": run.get("startedAt"),
+            "finishedAt": run.get("finishedAt")
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/fetch/<run_id>")
+def fetch_results(run_id):
+    try:
+        run = client.run(run_id).get()
         if run.get("status") != "SUCCEEDED":
-            return jsonify({
-                "error": f"Actor ทำงานไม่สำเร็จ: {run.get('status')}",
-                "runId": run.get("id")
-            }), 500
+            return jsonify({"error": f"Run ยังไม่เสร็จ (status={run.get('status')})"}), 400
 
         count = 0
         for item in client.dataset(run["defaultDatasetId"]).iterate_items():
@@ -76,11 +103,10 @@ def fetch_instagram_data():
 
         db.session.commit()
 
-        return jsonify({"message": f"ดึงข้อมูลสำเร็จ {count} โพสต์", "count": count}), 200
+        return jsonify({"message": f"บันทึกลง DB สำเร็จ {count} โพสต์", "count": count}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-        
 
 
 @app.route("/download")
