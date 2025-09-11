@@ -39,9 +39,9 @@ def index():
     posts = Post.query.order_by(Post.id.desc()).all()
     return render_template("index.html", posts=posts)
 
-@app.route("/pull", methods=["GET", "POST"])
+@app.route("/pull", methods=["POST"])
 def trigger_instagram_data():
-    if request.method == "GET":
+    if request.method == "POST":
         return jsonify({"message": "โปรดส่ง POST request พร้อม URLs"}), 400
     try:
         urls = request.form.get("urls", "")
@@ -66,46 +66,6 @@ def trigger_instagram_data():
             "statusUrl": f"/status/{run['id']}",
             "fetchUrl": f"/fetch/{run['id']}"
         }), 202
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/status/<run_id>")
-def check_status(run_id):
-    try:
-        run = client.run(run_id).get()
-        return jsonify({
-            "id": run.get("id"),
-            "status": run.get("status"),
-            "startedAt": run.get("startedAt"),
-            "finishedAt": run.get("finishedAt")
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/fetch/<run_id>")
-def fetch_results(run_id):
-    try:
-        run = client.run(run_id).get()
-        if run.get("status") != "SUCCEEDED":
-            return jsonify({"error": f"Run ยังไม่เสร็จ (status={run.get('status')})"}), 400
-
-        count = 0
-        for item in client.dataset(run["defaultDatasetId"]).iterate_items():
-            post = Post(
-                page_name=item.get("ownerFullName") or item.get("ownerUsername") or "N/A",
-                text=item.get("caption", "No caption"),
-                post_url=item.get("url", "No URL"),
-                post_date=item.get("timestamp")
-            )
-            db.session.add(post)
-            count += 1
-
-        db.session.commit()
-
-        return jsonify({"message": f"บันทึกลง DB สำเร็จ {count} โพสต์", "count": count}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
