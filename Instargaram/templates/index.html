@@ -119,15 +119,26 @@
 
   <h2>โพสต์ล่าสุด</h2>
   <ul>
-    {% for post in posts %}
-      <li>
-        <a href="{{ post.post_url }}" target="_blank">{{ post.page_name }}</a><br>
-        {{ post.text }}<br>
-        <small>{{ post.post_date }}</small>
-      </li>
+    {% if data %}
+        <table>
+            <tr>
+                <th>Page Name</th>
+                <th>Text</th>
+                <th>Post URL</th>
+                <th>Post Date</th>
+            </tr>
+            {% for item in data %}
+            <tr>
+                <td>{{ item['Page Name'] }}</td>
+                <td>{{ item['Text'] }}</td>
+                <td><a href="{{ item['Post URL'] }}" target="_blank">{{ item['Post URL'] }}</a></td>
+                <td>{{ item['Post Date'] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     {% else %}
-      <li style="text-align:center; color:#7f8c8d;">ไม่มีโพสต์</li>
-    {% endfor %}
+        <p>ยังไม่มีข้อมูล</p>
+    {% endif %}
   </ul>
 
   <a class="download-link" href="/download">ดาวน์โหลด CSV</a>
