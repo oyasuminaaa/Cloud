@@ -4,28 +4,11 @@ from apify_client import ApifyClient
 import csv
 from io import StringIO
 from models import db, Post
+import pandas as pd
+
 
 
 app = Flask(__name__)
-
-# --- Database config ---
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("Missing DATABASE_URL environment variable.")
-
-# Render ให้ค่าเป็น postgres:// แต่ SQLAlchemy+psycopg ต้องการ postgresql+psycopg://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
-elif DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db.init_app(app)
-
-with app.app_context():
-    db.create_all()
 
 # --- Apify config ---
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
@@ -33,10 +16,34 @@ if not APIFY_TOKEN:
     raise RuntimeError("Missing APIFY_TOKEN environment variable.")
 client = ApifyClient(APIFY_TOKEN)
 
+# --- EXCEL ---
+EXCEL_FILE = "instagram_data.xlsx"
+
+def save_post_to_excel(page_name, text, post_url, post_date):
+    # ถ้ามีไฟล์แล้ว ให้อ่านเพิ่ม ถ้าไม่มีก็สร้างใหม่
+    if os.path.exists(EXCEL_FILE):
+        df = pd.read_excel(EXCEL_FILE)
+    else:
+        df = pd.DataFrame(columns=["Page Name", "Text", "Post URL", "Post Date"])
+
+    # เพิ่มข้อมูลใหม่
+    new_row = {"Page Name": page_name, "Text": text, "Post URL": post_url, "Post Date": post_date}
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+    # บันทึกกลับไปที่ไฟล์
+    df.to_excel(EXCEL_FILE, index=False)
+    return True
+
+def load_posts_from_excel():
+    if os.path.exists(EXCEL_FILE):
+        return pd.read_excel(EXCEL_FILE).to_dict(orient="records")
+    return []
+
+
 # --- Routes ---
 @app.route("/")
 def index():
-    posts = Post.query.order_by(Post.id.desc()).all()
+    posts = load_posts_from_excel()
     return render_template("index.html", posts=posts)
 
 @app.route("/pull", methods=["POST"])
@@ -70,16 +77,14 @@ def trigger_instagram_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/download")
 def download_csv():
     try:
-        posts = Post.query.order_by(Post.id.desc()).all()
+        if not os.path.exists(EXCEL_FILE):
+            return {"error": "ยังไม่มีข้อมูล"}, 400
+        df = pd.read_excel(EXCEL_FILE)
         si = StringIO()
-        writer = csv.writer(si)
-        writer.writerow(["Page Name", "Text", "Post URL", "Post Date"])
-        for post in posts:
-            writer.writerow([post.page_name, post.text, post.post_url, post.post_date])
+        df.to_csv(si, index=False)
         return Response(
             si.getvalue(),
             mimetype="text/csv",
@@ -87,6 +92,7 @@ def download_csv():
         )
     except Exception as e:
         return {"error": str(e)}, 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
