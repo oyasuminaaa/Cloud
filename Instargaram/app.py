@@ -3,7 +3,6 @@ from flask import Flask, request, jsonify, render_template, Response , redirect,
 from apify_client import ApifyClient
 import csv
 from io import StringIO
-from models import db, Post
 import pandas as pd
 
 
