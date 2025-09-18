@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify, render_template, Response
+from flask import Flask, request, jsonify, render_template, Response , redirect, url_for
 from apify_client import ApifyClient
 import csv
 from io import StringIO
@@ -48,8 +48,6 @@ def index():
 
 @app.route("/pull", methods=["POST"])
 def trigger_instagram_data():
-    if request.method == "GET":
-        return jsonify({"message": "โปรดส่ง POST request พร้อม URLs"}), 400
     try:
         urls = request.form.get("urls", "")
         results_limit = int(request.form.get("results_limit", 40))
@@ -64,18 +62,25 @@ def trigger_instagram_data():
             "addParentData": True,
         }
 
-        # Trigger run แต่ไม่รอให้เสร็จ
-        run = client.actor("apify/instagram-scraper").start(run_input=run_input)
+        # รัน actor แล้วดึงผลลัพธ์กลับมาเลย
+        run = client.actor("apify/instagram-scraper").call(run_input=run_input)
+        dataset_items = client.dataset(run["defaultDatasetId"]).list_items().items
 
-        return jsonify({
-            "message": "เริ่มดึงข้อมูลแล้ว",
-            "runId": run["id"],
-            "statusUrl": f"/status/{run['id']}",
-            "fetchUrl": f"/fetch/{run['id']}"
-        }), 202
+        # เซฟลง Excel
+        for item in dataset_items:
+            save_post_to_excel(
+                page_name=item.get("ownerUsername", ""),
+                text=item.get("caption", ""),
+                post_url=item.get("url", ""),
+                post_date=item.get("timestamp", "")
+            )
+
+        # เสร็จแล้วกลับไปหน้า index เพื่อแสดงผล
+        return redirect(url_for("index"))
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/download")
 def download_csv():
