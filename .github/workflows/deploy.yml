@@ -3,7 +3,7 @@ name: CI/CD to Render
 on:
   push:
     branches:
-      - dev   # จะ deploy ตอน push เข้า main
+      - dev   
 
 jobs:
   build-and-deploy:
