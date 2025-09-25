@@ -1,9 +1,7 @@
 import os
 import csv
-from io import StringIO
 from flask import Flask, request, jsonify, render_template, Response, redirect, url_for
 from apify_client import ApifyClient
-import pandas as pd
 
 app = Flask(__name__)
 
@@ -27,8 +25,9 @@ def save_post_to_csv(page_name, text, post_url, post_date):
 def load_posts_from_csv():
     if not os.path.exists(CSV_FILE):
         return []
-    df = pd.read_csv(CSV_FILE)
-    return df.tail(50).to_dict(orient="records")  # แสดงล่าสุด 50 รายการ
+    with open(CSV_FILE, encoding="utf-8") as f:
+        reader = list(csv.DictReader(f))
+        return reader[-50:]  # แสดงล่าสุด 50 รายการ
 
 
 # --- Routes ---
@@ -41,13 +40,10 @@ def index():
 def trigger_instagram_data():
     try:
         urls = request.form.get("urls", "")
-        results_limit = max(1, min(int(request.form.get("results_limit", 1)), 20))  # limit 20
-        start_urls = [u.strip() for u in urls.splitlines() if u.strip()]
+        results_limit = max(1, min(int(request.form.get("results_limit", 1)), 20))
+        start_urls = [u.strip() for u in urls.splitlines() if u.strip()][:5]
         if not start_urls:
             return jsonify({"error": "กรุณาระบุ URL อย่างน้อย 1 รายการ"}), 400
-
-        # จำกัดจำนวน URL ไม่ให้มากเกินไป
-        start_urls = start_urls[:5]
 
         run_input = {
             "directUrls": start_urls,
@@ -56,12 +52,25 @@ def trigger_instagram_data():
             "addParentData": True,
         }
 
-        # รัน actor แล้วดึงผลลัพธ์กลับมา
-        run = client.actor("apify/instagram-scraper").call(run_input=run_input)
-        dataset_items = client.dataset(run["defaultDatasetId"]).list_items().items
+        # เริ่ม Actor แบบ async (ไม่ block รอ)
+        run = client.actor("apify/instagram-scraper").start(run_input=run_input)
+        dataset_id = run["defaultDatasetId"]
 
-        # เซฟลง CSV
-        for item in dataset_items:
+        # redirect พร้อมแจ้งว่ากำลังดึงข้อมูล
+        return redirect(url_for("fetch_results", dataset_id=dataset_id))
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/fetch_results/<dataset_id>")
+def fetch_results(dataset_id):
+    try:
+        # ลองดึงข้อมูลจาก dataset
+        items = client.dataset(dataset_id).list_items().items
+        if not items:
+            return "<p>⏳ กำลังดึงข้อมูลจาก Instagram... โปรดลองรีเฟรชอีกครั้ง</p>"
+
+        for item in items:
             save_post_to_csv(
                 page_name=item.get("ownerUsername", ""),
                 text=item.get("caption", ""),
