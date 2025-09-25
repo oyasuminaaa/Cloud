@@ -139,6 +139,39 @@
   </form>
 
   <h2>โพสต์ล่าสุด</h2>
+{% if data %}
+  <table>
+    <tr>
+      <th>Page Name</th>
+      <th>Text</th>
+      <th>Post URL</th>
+      <th>Post Date</th>
+    </tr>
+    {% for item in data %}
+    <tr>
+      <td>{{ item['Page Name'] }}</td>
+      <td>{{ item['Text'] }}</td>
+      <td><a href="{{ item['Post URL'] }}" target="_blank">{{ item['Post URL'] }}</a></td>
+      <td>{{ item['Post Date'] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <!-- Pagination Controls -->
+  <div style="text-align:center; margin:20px;">
+    {% if page > 1 %}
+      <a href="?page={{ page - 1 }}" style="margin:0 10px;">⬅ ก่อนหน้า</a>
+    {% endif %}
+
+    <span>หน้า {{ page }} จาก {{ total_pages }}</span>
+
+    {% if page < total_pages %}
+      <a href="?page={{ page + 1 }}" style="margin:0 10px;">ถัดไป ➡</a>
+    {% endif %}
+  </div>
+{% else %}
+  <p>ยังไม่มีข้อมูล</p>
+{% endif %}
   {% if data %}
   <table>
     <tr>
