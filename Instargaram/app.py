@@ -22,19 +22,27 @@ def save_post_to_csv(page_name, text, post_url, post_date):
             writer.writerow(["Page Name", "Text", "Post URL", "Post Date"])
         writer.writerow([page_name, text, post_url, post_date])
 
-def load_posts_from_csv():
+def load_posts_from_csv(page=1, per_page=10):
     if not os.path.exists(CSV_FILE):
-        return []
+        return [], 0
     with open(CSV_FILE, encoding="utf-8") as f:
         reader = list(csv.DictReader(f))
-        return reader[-50:]  # แสดงล่าสุด 50 รายการ
+        posts = reader[-50:]  # ล่าสุด 50 รายการ
+        total = len(posts)
+        total_pages = (total + per_page - 1) // per_page
 
+        # slice ตามหน้า
+        start = (page - 1) * per_page
+        end = start + per_page
+        return posts[start:end], total_pages
 
 # --- Routes ---
 @app.route("/")
 def index():
-    data = load_posts_from_csv()
-    return render_template("index.html", data=data)
+    page = int(request.args.get("page", 1))
+    per_page = 10
+    data, total_pages = load_posts_from_csv(page, per_page)
+    return render_template("index.html", data=data, page=page, total_pages=total_pages)
 
 @app.route("/pull", methods=["POST"])
 def trigger_instagram_data():
@@ -52,11 +60,9 @@ def trigger_instagram_data():
             "addParentData": True,
         }
 
-        # เริ่ม Actor แบบ async (ไม่ block รอ)
         run = client.actor("apify/instagram-scraper").start(run_input=run_input)
         dataset_id = run["defaultDatasetId"]
 
-        # redirect พร้อมแจ้งว่ากำลังดึงข้อมูล
         return redirect(url_for("fetch_results", dataset_id=dataset_id))
 
     except Exception as e:
@@ -65,7 +71,6 @@ def trigger_instagram_data():
 @app.route("/fetch_results/<dataset_id>")
 def fetch_results(dataset_id):
     try:
-        # ลองดึงข้อมูลจาก dataset
         items = client.dataset(dataset_id).list_items().items
         if not items:
             return "<p>⏳ กำลังดึงข้อมูลจาก Instagram... โปรดลองรีเฟรชอีกครั้ง</p>"
@@ -97,7 +102,6 @@ def download_csv():
 @app.get("/healthz")
 def healthz():
     return "ok", 200
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
