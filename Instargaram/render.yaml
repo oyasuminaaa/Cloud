@@ -2,8 +2,14 @@ services:
   - type: web
     name: instagram-scraper
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    plan: free
+    region: singapore   # หรือเปลี่ยน region ได้ตามต้องการ
+    buildCommand: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: |
+      gunicorn app:app --workers=1 --threads=2 --timeout=120 --graceful-timeout=30 --keep-alive=5
     envVars:
       - key: APIFY_TOKEN
         sync: false
+    healthCheckPath: /healthz
