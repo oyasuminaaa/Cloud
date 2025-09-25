@@ -172,27 +172,6 @@
 {% else %}
   <p>ยังไม่มีข้อมูล</p>
 {% endif %}
-  {% if data %}
-  <table>
-    <tr>
-      <th>Page Name</th>
-      <th>Text</th>
-      <th>Post URL</th>
-      <th>Post Date</th>
-    </tr>
-    {% for item in data %}
-    <tr>
-      <td>{{ item['Page Name'] }}</td>
-      <td>{{ item['Text'] }}</td>
-      <td><a href="{{ item['Post URL'] }}" target="_blank">{{ item['Post URL'] }}</a></td>
-      <td>{{ item['Post Date'] }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}
-    <p>ยังไม่มีข้อมูล</p>
-  {% endif %}
-
   <a class="download-link" href="/download">ดาวน์โหลด CSV</a>
 </body>
 </html>
